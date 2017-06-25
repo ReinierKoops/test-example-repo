@@ -49,16 +49,34 @@ pipeline {
             }
         }
         stage('Deploy to Test') {
-            // Stop old java project
+            steps {
+                sh '''#!/bin/bash -xe
 
-            // Remove old java project
+                # Stop all possible old java project
+                if [ -z "$(ssh 172.28.0.20 'pgrep -f test-example')" ]
+                then
+                      echo "No java instance running found"
+                else
+                      echo "A java instance was running, killing it now"
+                      ssh 172.28.0.20 'pkill -f "java -jar"'
+                fi
 
-            // Copy new java project
+                # Clean up project directory
+                ssh 172.28.0.20 'rm -rf /usr/project'
+                ssh 172.28.0.20 'mkdir /usr/project'
 
-            // Run new java project
+                # Copy project from Jenkins to environment
+                scp /var/jenkins_home/workspace/test-project/target/*.jar 172.28.0.20:/usr/project/
 
-            // Test if working via CURL
+                # Run the new version of the project
+                ssh 172.28.0.20 "nohup java -jar /usr/project/*.jar 1>/dev/null 2>&1 &"
 
+                # Test if project workspace
+                #response='$(curl -s -o /dev/null -w "%{http_code}" http://172.28.0.20:8080/)'
+                # if response is not equal to 200, fail the build
+                #if [ $response -ne 200 ]; then exit 1; fi'
+                      '''
+            }
         }
         stage('Test approval') {
             steps {
@@ -66,7 +84,34 @@ pipeline {
             }
         }
         stage('Deploy to Acceptance') {
-            // deploy image via ssh to server and curl to test
+            steps {
+                sh '''#!/bin/bash -xe
+
+                # Stop all possible old java project
+                if [ -z "$(ssh 172.28.0.30 'pgrep -f test-example')" ]
+                then
+                      echo "No java instance running found"
+                else
+                      echo "A java instance was running, killing it now"
+                      ssh 172.28.0.30 'pkill -f "java -jar"'
+                fi
+
+                # Clean up project directory
+                ssh 172.28.0.30 'rm -rf /usr/project'
+                ssh 172.28.0.30 'mkdir /usr/project'
+
+                # Copy project from Jenkins to environment
+                scp /var/jenkins_home/workspace/test-project/target/*.jar 172.28.0.30:/usr/project/
+
+                # Run the new version of the project
+                ssh 172.28.0.30 "nohup java -jar /usr/project/*.jar 1>/dev/null 2>&1 &"
+
+                # Test if project workspace
+                #response='$(curl -s -o /dev/null -w "%{http_code}" http://172.28.0.30:8080/)'
+                # if response is not equal to 200, fail the build
+                #if [ $response -ne 200 ]; then exit 1; fi'
+                      '''
+            }
         }
         stage('Acceptance approval') {
             steps {
@@ -79,9 +124,33 @@ pipeline {
             }
         }
         stage('Deploy to Production') {
-          steps {
-              echo 'Deploying....'
-              // deploy update via ssh to server and curl to test
+            steps {
+                sh '''#!/bin/bash -xe
+
+                # Stop all possible old java project
+                if [ -z "$(ssh 172.28.0.40 'pgrep -f test-example')" ]
+                then
+                      echo "No java instance running found"
+                else
+                      echo "A java instance was running, killing it now"
+                      ssh 172.28.0.40 'pkill -f "java -jar"'
+                fi
+
+                # Clean up project directory
+                ssh 172.28.0.40 'rm -rf /usr/project'
+                ssh 172.28.0.40 'mkdir /usr/project'
+
+                # Copy project from Jenkins to environment
+                scp /var/jenkins_home/workspace/test-project/target/*.jar 172.28.0.40:/usr/project/
+
+                # Run the new version of the project
+                ssh 172.28.0.40 "nohup java -jar /usr/project/*.jar 1>/dev/null 2>&1 &"
+
+                # Test if project workspace
+                #response='$(curl -s -o /dev/null -w "%{http_code}" http://172.28.0.40:8080/)'
+                # if response is not equal to 200, fail the build
+                #if [ $response -ne 200 ]; then exit 1; fi'
+                      '''
           }
         }
     }
